@@ -660,6 +660,59 @@ private:
 };
 
 
+/**
+ * Audio File Descriptor I/O.
+ */
+class AudioMediaFD : public AudioMedia
+{
+public:
+    /**
+     * Constructor.
+     */
+    AudioMediaFD();
+
+	/**
+     * Create a file discriptor I/O, and automatically connect this port to
+     * the conference bridge.
+     *
+	 * @param fd_in		Descriptor open for reading (i.e. audio source)
+	 *             		or -1 to disable audio input.
+	 * @param fd_out		Descriptor open for writing (i.e. audio sink)
+	 *             		or -1 to disable audio output.
+     * @param options	 Optional options, which can be used to specify the
+     * 			 file descriptor types and behavidour.
+	 * 			 ORed pjmedia_file_descriptor_option flags:
+	 * 			  - PJMEDIA_FD_NONBLOCK (1) for non-blocking mode (UNIX only;
+	 * 			    O_NONBLOCK is fcntl'ed on the descriptors if specified).
+	 * 			  - PJMEDIA_FD_HANDLES (2): Parameters fd_in and fd_out are Windows
+	 * 			    file handles instead of integer file descriptors (Windows only).
+     */
+    void createFD(int fd_in = -1,
+			int fd_out = -1,
+			unsigned options = 0) throw(Error);
+
+    /**
+     * Typecast from base class AudioMedia. This is useful for application
+     * written in language that does not support downcasting such as Python.
+     *
+     * @param media		The object to be downcasted
+     *
+     * @return			The object as AudioMediaFD instance
+     */
+    static AudioMediaFD* typecastFromAudioMedia(AudioMedia *media);
+
+    /**
+     * Virtual destructor.
+     */
+    virtual ~AudioMediaFD();
+
+private:
+    /**
+     * File Descriptor I/O Id (i.e. shared with Recorder Id).
+     */
+    int	recorderId;
+};
+
 /*************************************************************************
 * Sound device management
 */

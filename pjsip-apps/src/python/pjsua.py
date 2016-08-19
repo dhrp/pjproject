@@ -2709,6 +2709,65 @@ class Lib:
         err = _pjsua.recorder_destroy(rec_id)
         self._err_check("recorder_destroy()", self, err)
 
+    def create_audio_fd(self, fd_in = -1, fd_out = -1, flags = 0):
+        """Create audio file descriptor port.
+
+        Keyword arguments
+        fd_in  -- Input file descriptor/handle or -1 to disable
+        fd_out -- Output file descriptor/handle or -1 to disable
+        flags  -- 0 for blocking I/O (default) or ORed
+                   - 1 for non-blocking I/O with buffering (UNIX only)
+                   - 2 fd_in and fd_out are Windows file handle_events
+                       instead of integer descriptors (Windows only)
+
+        File descriptors and handles can be obtained as follows:
+            f = io.open("file.wav", "rb")
+            descriptor = f.fileno()
+            handle = msvcrt.get_osfhandle(descriptor)
+            # or
+            handle = win32file._get_osfhandle(descriptor)
+
+        On Windows, passing handles is preferred to descriptors, since
+        descriptors only work with the same MSVCRT DLL (not static)
+        version across all libraries.
+
+        Return:
+            File descriptor audio port ID
+
+        """
+        lck = self.auto_lock()
+        err, fdp_id = _pjsua.audio_fd_create(fd_in, fd_out, flags)
+        self._err_check("create_audio_fd()", self, err)
+        return fdp_id
+
+    def audio_fd_get_slot(self, fdp_id):
+        """Get the conference port ID for the specified file descriptor port.
+
+        Keyword arguments:
+        fdp_id  -- the file descriptor port ID
+
+        Return:
+            Conference slot number for the file descriptor port
+
+        """
+        lck = self.auto_lock()
+        slot = _pjsua.audio_fd_get_conf_port(fdp_id)
+        if slot < 1:
+            self._err_check("audio_fd_get_slot()", self, -1,
+                            "Invalid file descriptor port id")
+        return slot
+
+    def audio_fd_destroy(self, fdp_id):
+        """Destroy the file descriptor port.
+
+        Keyword arguments:
+        fdp_id   -- the audio callback ID.
+
+        """
+        lck = self.auto_lock()
+        err = _pjsua.audio_fd_destroy(fdp_id)
+        self._err_check("audio_fd_destroy()", self, err)
+
 
     # Internal functions
 

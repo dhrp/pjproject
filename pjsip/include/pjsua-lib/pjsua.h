@@ -6425,6 +6425,76 @@ PJ_DECL(pj_status_t) pjsua_recorder_destroy(pjsua_recorder_id id);
 
 
 /*****************************************************************************
+ * File descriptor audio I/O.
+ */
+
+/**
+ * Create a file descriptor I/O, and automatically connect this port to
+ * the conference bridge.
+ *
+ * File descriptor port profides a simple way to pass audio frames
+ * to/from an open file descriptor (a file, socket, pipe etc.)
+ * which can be the same or a different process
+ * (e.g. a speech recognizer or synthesizer).
+ *
+ * It can operate either in blocking or non-blocking mode. In blocking
+ * mode the user must make sure the I/O operations complete quicky,
+ * in non-blocking mode the data is buffered automatically.
+ *
+ * @param fd_in		Descriptor open for reading (i.e. audio source)
+ *             		or -1 to disable audio input.
+ * @param fd_out		Descriptor open for writing (i.e. audio sink)
+ *             		or -1 to disable audio output.
+ * @param flags		0 or PJMEDIA_FD_BLOCK for default, i.e. blocking mode,
+ *             		or ORed pjmedia_file_descriptor_option flags:
+ *             		- PJMEDIA_FD_NONBLOCK (1) for non-blocking mode
+ *             		  (O_NONBLOCK is fcntl'ed on the descriptors if specified).
+ *             		- PJMEDIA_FD_HANDLES (2): Parameters fd_in and fd_out are Windows
+ *             		  file handles instead of integer file descriptors (Windows only).
+ * @param p_id		   Pointer to receive the file descriptor port instance.
+ *                  The id space is shared with recorders.
+ *
+ * @return		PJ_SUCCESS on success, or the appropriate error code.
+ */
+PJ_DECL(pj_status_t) pjsua_audio_fd_create(int fd_in,
+                                           int fd_out,
+                                           unsigned flags,
+                                           pjsua_recorder_id *p_id);
+
+
+/**
+ * Get conference port associated with the file descriptor port.
+ *
+ * @param id		The file descriptor port (i.e. recorder) ID.
+ *
+ * @return		Conference port ID associated with this file descriptor port.
+ */
+PJ_DECL(pjsua_conf_port_id) pjsua_audio_fd_get_conf_port(pjsua_recorder_id id);
+
+
+/**
+ * Get the media port for the file descriptor port.
+ *
+ * @param id		The file descriptor port (i.e. recorder) ID.
+ * @param p_port	The media port associated with the file descriptor port.
+ *
+ * @return		PJ_SUCCESS on success.
+ */
+PJ_DECL(pj_status_t) pjsua_audio_fd_get_port(pjsua_recorder_id id,
+					     pjmedia_port **p_port);
+
+
+/**
+ * Destroy file descriptor port.
+ *
+ * @param id		The file descriptor ID.
+ *
+ * @return		PJ_SUCCESS on success, or the appropriate error code.
+ */
+PJ_DECL(pj_status_t) pjsua_audio_fd_destroy(pjsua_recorder_id id);
+
+
+/*****************************************************************************
  * Sound devices.
  */
 

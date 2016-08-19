@@ -27,6 +27,7 @@
 #include <pjmedia/alaw_ulaw.h>
 #include <pjmedia/avi_stream.h>
 #include <pjmedia/bidirectional.h>
+#include <pjmedia/fd_port.h>
 #include <pjmedia/circbuf.h>
 #include <pjmedia/clock.h>
 #include <pjmedia/codec.h>

@@ -1507,6 +1507,154 @@ PJ_DEF(pj_status_t) pjsua_recorder_destroy(pjsua_recorder_id id)
 
 
 /*****************************************************************************
+ * File descriptor audio I/O.
+ */
+
+/*
+ * Create a file descriptor audio port, and automatically connect this port to
+ * the conference bridge.
+ * Warning! Shares ID space with recorders.
+ */
+PJ_DEF(pj_status_t) pjsua_audio_fd_create(int fd_in,
+                                          int fd_out,
+                                          unsigned flags,
+                                          pjsua_recorder_id *p_id)
+{
+    unsigned slot, rec_id;
+    pj_pool_t *pool = NULL;
+    pjmedia_port *port;
+	static const pj_str_t fd_name = {"fd-port", 7};
+    pj_status_t status = PJ_SUCCESS;
+
+    /* At least one FD must be present */
+    PJ_ASSERT_RETURN((fd_in >= 0) || (fd_out >= 0), PJ_EINVAL);
+
+    PJ_LOG(4,(THIS_FILE, "Creating file descriptor port for %s..",
+	      ((fd_in >= 0) && (fd_out >= 0) ? "RW" : ((fd_in >= 0) ? "R" : "W"))));
+    pj_log_push_indent();
+
+    if (pjsua_var.rec_cnt >= PJ_ARRAY_SIZE(pjsua_var.recorder)) {
+	pj_log_pop_indent();
+	return PJ_ETOOMANY;
+    }
+
+    PJSUA_LOCK();
+
+    for (rec_id=0; rec_id<PJ_ARRAY_SIZE(pjsua_var.recorder); ++rec_id) {
+	if (pjsua_var.recorder[rec_id].port == NULL)
+	    break;
+    }
+
+    if (rec_id == PJ_ARRAY_SIZE(pjsua_var.recorder)) {
+	/* This is unexpected */
+	pj_assert(0);
+	status = PJ_EBUG;
+	goto on_return;
+    }
+
+    pool = pjsua_pool_create("fd-port", 256, 16);
+    if (!pool) {
+	status = PJ_ENOMEM;
+	goto on_return;
+    }
+
+	status = pjmedia_fd_port_create(pool,
+						pjsua_var.media_cfg.clock_rate,
+						pjsua_var.mconf_cfg.channel_count,
+						pjsua_var.mconf_cfg.samples_per_frame,
+						pjsua_var.mconf_cfg.bits_per_sample,
+						fd_in,
+						fd_out,
+						flags,
+						&port);
+
+    if (status != PJ_SUCCESS) {
+	pjsua_perror(THIS_FILE, "Unable to create file descriptor port", status);
+	goto on_return;
+    }
+
+    status = pjmedia_conf_add_port(pjsua_var.mconf, pool,
+				   port, &fd_name, &slot);
+    if (status != PJ_SUCCESS) {
+	pjmedia_port_destroy(port);
+	goto on_return;
+    }
+
+    pjsua_var.recorder[rec_id].port = port;
+    pjsua_var.recorder[rec_id].slot = slot;
+    pjsua_var.recorder[rec_id].pool = pool;
+
+    if (p_id) *p_id = rec_id;
+
+    ++pjsua_var.rec_cnt;
+
+    PJSUA_UNLOCK();
+
+    PJ_LOG(4,(THIS_FILE, "File descriptor port created, id=%d, slot=%d", rec_id, slot));
+
+    pj_log_pop_indent();
+    return PJ_SUCCESS;
+
+on_return:
+    PJSUA_UNLOCK();
+    if (pool) pj_pool_release(pool);
+    pj_log_pop_indent();
+    return status;
+}
+
+
+/*
+ * Get conference port associated with a file descriptor port.
+ * Warning! Shares ID space with recorders.
+ */
+PJ_DEF(pjsua_conf_port_id) pjsua_audio_fd_get_conf_port(pjsua_recorder_id id)
+{
+    return pjsua_recorder_get_conf_port(id);
+}
+
+/*
+ * Get the media port for a file descriptor port.
+ * Warning! Shares ID space with recorders.
+ */
+PJ_DEF(pj_status_t) pjsua_audio_fd_get_port( pjsua_recorder_id id,
+					     pjmedia_port **p_port)
+{
+    return pjsua_recorder_get_port(id, p_port);
+}
+
+/*
+ * Destroy a file descriptor port.
+ * Warning! Shares ID space with recorders.
+ */
+PJ_DEF(pj_status_t) pjsua_audio_fd_destroy(pjsua_recorder_id id)
+{
+    PJ_ASSERT_RETURN(id>=0 && id<(int)PJ_ARRAY_SIZE(pjsua_var.recorder),
+		     PJ_EINVAL);
+    PJ_ASSERT_RETURN(pjsua_var.recorder[id].port != NULL, PJ_EINVAL);
+
+    PJ_LOG(4,(THIS_FILE, "Destroying file descriptor port (i.e. recorder) %d..", id));
+    pj_log_push_indent();
+
+    PJSUA_LOCK();
+
+    if (pjsua_var.recorder[id].port) {
+	pjsua_conf_remove_port(pjsua_var.recorder[id].slot);
+	pjmedia_port_destroy(pjsua_var.recorder[id].port);
+	pjsua_var.recorder[id].port = NULL;
+	pjsua_var.recorder[id].slot = 0xFFFF;
+	pj_pool_release(pjsua_var.recorder[id].pool);
+	pjsua_var.recorder[id].pool = NULL;
+	pjsua_var.rec_cnt--;
+    }
+
+    PJSUA_UNLOCK();
+    pj_log_pop_indent();
+
+    return PJ_SUCCESS;
+}
+
+
+/*****************************************************************************
  * Sound devices.
  */
 

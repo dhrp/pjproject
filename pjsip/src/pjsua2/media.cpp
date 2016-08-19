@@ -376,6 +376,47 @@ pj_status_t AudioMediaPlayer::eof_cb(pjmedia_port *port,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+AudioMediaFD::AudioMediaFD()
+: recorderId(PJSUA_INVALID_ID)
+{
+
+}
+
+AudioMediaFD::~AudioMediaFD()
+{
+    if (recorderId != PJSUA_INVALID_ID) {
+	unregisterMediaPort();
+	pjsua_audio_fd_destroy(recorderId);
+    }
+}
+
+void AudioMediaFD::createFD(int fd_in /* = -1 */,
+				        int fd_out /* = -1 */,
+				        unsigned options /* = 0 */)
+				        throw(Error)
+{
+    if (recorderId != PJSUA_INVALID_ID) {
+	PJSUA2_RAISE_ERROR(PJ_EEXISTS);
+    }
+
+    PJSUA2_CHECK_EXPR( pjsua_audio_fd_create(fd_in,
+					     fd_out,
+					     options,
+					     &recorderId) );
+
+    /* Get media port id. */
+    id = pjsua_audio_fd_get_conf_port(recorderId);
+
+    registerMediaPort(NULL);
+}
+
+AudioMediaFD* AudioMediaFD::typecastFromAudioMedia(
+						AudioMedia *media)
+{
+    return static_cast<AudioMediaFD*>(media);
+}
+
+/////////////////////////////////////////////////////////////////////////////// void AudioDevInfo::fromPj(const pjmedia_aud_dev_info &dev_info)
 AudioMediaRecorder::AudioMediaRecorder()
 : recorderId(PJSUA_INVALID_ID)
 {

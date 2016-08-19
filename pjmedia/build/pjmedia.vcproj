@@ -3459,6 +3459,10 @@
 				</FileConfiguration>
 			</File>
 			<File
+				RelativePath="..\src\pjmedia\fd_port.c"
+				>
+			</File>
+			<File
 				RelativePath="..\src\pjmedia\clock_thread.c"
 				>
 				<FileConfiguration
@@ -7289,6 +7293,10 @@
 			</File>
 			<File
 				RelativePath="..\include\pjmedia\avi_stream.h"
+				>
+			</File>
+			<File
+				RelativePath="..\include\pjmedia\fd_port.h"
 				>
 			</File>
 			<File
